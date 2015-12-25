@@ -1,0 +1,11 @@
+# ghost
+
+# description "An Upstart task to make sure that my Ghost server is always running"
+# author "Your Name Here"
+
+start on startup
+
+script
+    cd {{ ghost_path }}
+    npm start
+end script

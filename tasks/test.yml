@@ -1,0 +1,82 @@
+---
+
+- name: Grab {{ ghost_ver }} version of Ghost.
+  sudo: false
+  local_action: command /usr/bin/curl -L https://ghost.org/zip/ghost-{{ ghost_ver }}.zip -o ghost.zip
+
+- name: Update apt for latest node versions
+  apt: update_cache=yes
+  
+- name: Install required packages
+  apt: name={{ item }} state=latest
+  with_items:
+    - nodejs
+    - nodejs-legacy
+    - npm
+    - zip
+
+- name: Ensure directory exists
+  file: state=directory path={{ ghost_path }}
+
+- name: Move ghost-{{ ghost_ver }} to target {{ ghost_path }}
+  unarchive: src=ghost.zip dest={{ ghost_path }} creates=yes
+
+- name: Add ghost daemon user
+  user: user=ghost state=present system=yes
+
+- name: Add the init script
+  template: src=ghost_init.j2 dest=/etc/init.d/ghost mode=755
+
+- name: Copy config.js template
+  template: src=config.js.j2 dest={{ ghost_path }}/config.js
+
+- name: Use npm to install the app
+  npm: path={{ ghost_path }} production=yes state=latest
+
+- name: Ensure our site is owned by ghost:ghost
+  file: path={{ ghost_path }} state=directory owner=ghost recurse=yes
+
+- name: Start the service
+  service: name=ghost state=restarted
+
+
+
+  ---
+- name: Install Java 1.7 and some basic dependencies
+  yum: name={{item}} state=present
+  with_items:
+   - unzip
+   - java-1.7.0-openjdk
+
+- name: Download JBoss from jboss.org
+  get_url: url=http://download.jboss.org/jbossas/7.1/jboss-as-7.1.1.Final/jboss-as-7.1.1.Final.zip dest=/opt/jboss-as-7.1.1.Final.zip
+
+- name: Extract archive
+  command: chdir=/usr/share /usr/bin/unzip -q /opt/jboss-as-7.1.1.Final.zip creates=/usr/share/jboss-as
+
+  # Rename the dir to avoid encoding the version in the init script
+- name: Rename install directory
+  command: chdir=/usr/share /bin/mv jboss-as-7.1.1.Final jboss-as creates=/usr/share/jboss-as
+
+- name: Copying standalone.xml configuration file
+  template: src=standalone.xml dest=/usr/share/jboss-as/standalone/configuration/
+  notify: restart jboss
+
+- name: Add group "jboss"
+  group: name=jboss
+
+- name: Add user "jboss"
+  user: name=jboss group=jboss home=/usr/share/jboss-as
+
+- name: Change ownership of JBoss installation
+  file: path=/usr/share/jboss-as/ owner=jboss group=jboss state=directory recurse=yes
+
+- name: Copy the init script
+  copy: src=jboss-as-standalone.sh dest=/etc/init.d/jboss mode=0755
+
+- name: Enable JBoss to be started at boot
+  service: name=jboss enabled=yes state=started 
+
+- name: deploy iptables rules
+  template: src=iptables-save dest=/etc/sysconfig/iptables
+  notify: restart iptables

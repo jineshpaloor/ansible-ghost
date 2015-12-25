@@ -1,0 +1,11 @@
+---
+ghost_path: '/var/www/ghost'
+ghost_port: '2368'
+ghost_ver: 'latest'
+ghost_url: 'blog.sahajsoft.com'
+site_type: 'production'
+database_user: 'root'
+database_password: 'xxx'
+database_name: 'xxx'
+mailgun_user: 'postmaster@sandboxxxxx.mailgun.org'
+mailgun_pass: 'xxx'

@@ -1,0 +1,57 @@
+---
+# tasks file to install ghost blog engine
+
+- name: Updates the list of available packages and their versions,
+  apt: update_cache=yes
+  sudo: yes
+
+- name: Installs newer versions of the packages you have.
+  apt: upgrade=yes
+  sudo: yes
+
+- name: Install wget zip npm and nodejs packages
+  sudo: yes
+  apt: name={{ item }} state=latest
+  with_items:
+    - wget
+    - zip
+    - nodejs
+    - npm
+
+- name: Create symlink for nodejs - fix for bug in ubuntu
+  file: src=/usr/bin/nodejs dest=/usr/bin/node state=link
+
+- name: Create folder to hold ghost files
+  sudo: yes
+  file: path={{ ghost_path }} state=directory
+
+- name: Download latest Ghost package from source
+  sudo: no
+  local_action: command /usr/bin/curl -L https://ghost.org/zip/ghost-{{ ghost_ver }}.zip -o ghost.zip
+
+- name: Unarchive ghost package
+  unarchive: src=ghost.zip dest={{ ghost_path }} creates=yes
+
+- name: Copy ghost configuration template
+  sudo: true
+  template: src=config.js.j2 dest={{ ghost_path }}/config.js mode=755
+
+- name: Add ghost daemon user
+  sudo: true
+  user: user=ghost state=present system=yes
+
+- name: Add the ghost initial configurations
+  template: src=ghost.conf.j2 dest=/etc/init/ghost.conf mode=755
+
+- name: Add the ghost service script
+  template: src=ghost_init.j2 dest=/etc/init.d/ghost mode=755
+
+- name: Change Permissions of ghost directory
+  sudo: yes
+  command: chown -R ghost:ghost {{ ghost_path }}
+
+- name: Install ghost
+  npm: path={{ ghost_path }} production=yes state=latest
+
+- name: Start ghost server
+  service: name=ghost state=restarted
