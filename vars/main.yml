@@ -2,7 +2,7 @@
 ghost_path: '/var/www/ghost'
 ghost_port: '2368'
 ghost_ver: 'latest'
-ghost_url: 'blog.sahajsoft.com'
+ghost_url: 'blog.domain.com'
 site_type: 'production'
 database_user: 'root'
 database_password: 'xxx'
